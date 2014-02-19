@@ -9,7 +9,7 @@ git svn得支持
 存在  commit  svn dcommit功能
 
 svn dcommit  先执行commit操作（选中得文件）还需要填写comment 然后将commit得文件进行dcommit 
-如果里面存在没有commit得文件，则将这些文件先打包或者什么（可以恢复得）然后dcommit之后将这些文件恢复
+如果里面存在没有commit得文件，则将这些文件先打包或者什么（可以恢复得,同目录创建一个临时文件，然后checkout没有选中的文件。然后提交后将临时文件恢复）然后dcommit之后将这些文件恢复
 再上面得所有过程都可以导出。
 
 git rebase支持？（需要学习git 其他方法）

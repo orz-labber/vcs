@@ -1,10 +1,14 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: com.orz.tool.vcs
-Bundle-SymbolicName: vcs
+Bundle-SymbolicName: vcs;singleton:=true
 Bundle-Version: 1.0.0.qualifier
 Bundle-Activator: com.orz.tool.vcs.Activator
 Require-Bundle: org.eclipse.ui,
- org.eclipse.core.runtime
+ org.eclipse.core.runtime,
+ org.eclipse.core.resources
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Bundle-ActivationPolicy: lazy
+Bundle-ClassPath: .,
+ lib/commons-compress-1.7.jar,
+ lib/commons-io-2.4.jar

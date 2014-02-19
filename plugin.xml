@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="org.eclipse.ui.actionSets">
+   </extension>
+   <extension
+         point="org.eclipse.ui.popupMenus">
+         
+          <viewerContribution id="com.orz.tool.vcs.contribution" targetID="org.eclipse.ui.views.ResourceNavigator"
+         objectClass="com.orz.tool.vcs.contribution.ResourceNavigatorContribution">
+         <menu label="VCS" id="com.orz.tool.vcs.menu">
+            <separator name="tools"/>
+         </menu>
+         <action
+               class="com.orz.tool.vcs.actions.GitSvnOpenDcommitDialogAction"
+               enablesFor="+"
+               id="com.orz.tool.vcs.actions.GitSvnOpenDcommitDialogAction"
+               label="git-svn dcommit"
+               menubarPath="com.orz.tool.vcs.menu/tools">
+         </action>
+      </viewerContribution>
+   </extension>
+   <extension
+         point="org.eclipse.ui.commands">
+   </extension>
+
+</plugin>
