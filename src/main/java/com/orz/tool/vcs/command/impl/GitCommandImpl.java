@@ -3,85 +3,163 @@ package com.orz.tool.vcs.command.impl;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+
+import com.orz.tool.vcs.PlugInUtil;
+import com.orz.tool.vcs.command.GitCommandException;
 import com.orz.tool.vcs.command.IGitCommand;
 import com.orz.tool.vcs.entity.FileElement;
+import com.orz.tool.vcs.ui.Log;
 
+@Component("command")
 public class GitCommandImpl implements IGitCommand {
 
-	private File root;
+	@Autowired
+	@Qualifier("location")
+	public File location;
+	
+	@Autowired
+	private Log logging;
 
 	@Override
-	public void dcommit() throws IOException {
+	public void dcommit() {
 		Runtime run = Runtime.getRuntime();
-		run.exec("git svn dcommit", null, this.root);
+		try {
+			String command = "git svn dcommit";
+			this.logging.info(command);
+			Process p = run.exec(command, null, this.location);
+			if(p.waitFor() != 0){
+				throw new GitCommandException(this.error(p));
+			}
+		} catch (Exception e) {
+			throw new GitCommandException(e);
+		}
 	}
 
 	@Override
-	public void commit(String comment) throws IOException {
+	public void commit(String message) {
 		Runtime run = Runtime.getRuntime();
-		run.exec("git commit -a -m \"" + comment + "\"", null, this.root);
+		try {
+            //Â¶ÇÊûúÂëΩ‰ª§Ë°å‰∏≠Â≠òÂú®Á©∫Ê†ºÔºåÂàôÈúÄË¶ÅÂ∞ÜÂëΩ‰ª§Ë°åËΩ¨ÊàêÊï∞ÁªÑÂΩ¢Âºè‰º†ÂÖ•
+			String[] command = {"git","commit","-m","'"+message+"'"};
+			this.logging.info(PlugInUtil.join(command, " "));
+			Process p = run.exec(command, null, this.location);
+			if(p.waitFor() != 0){
+				throw new GitCommandException(this.error(p));
+			}
+		} catch (Exception e) {
+			throw new GitCommandException(e);
+		}
 	}
 
 	@Override
-	public void add(FileElement element) throws IOException {
+	public void add(FileElement element) {
 		Runtime run = Runtime.getRuntime();
-		run.exec("git add " + element.getSrc(), null, this.root);
+		try {
+			String[] command = new String[]{"git","add" ,element.getSrc()};
+			this.logging.info(PlugInUtil.join(command, " "));
+			Process p = run.exec(command, null, this.location);
+			if(p.waitFor() != 0){
+				throw new GitCommandException(this.error(p));
+			}
+		} catch (Exception e) {
+			throw new GitCommandException(e);
+		}
 	}
 
 	@Override
-	public void checkout(FileElement element) throws IOException {
+	public void checkout(FileElement element) {
 		Runtime run = Runtime.getRuntime();
-		run.exec("git checkout " + element.getSrc(), null, this.root);
+		try {
+			String[] command = new String[]{"git","checkout",element.getSrc()};
+			this.logging.info(PlugInUtil.join(command, " "));
+			Process p = run.exec(command, null, this.location);
+			if(p.waitFor() != 0){
+				throw new GitCommandException(this.error(p));
+			}
+		} catch (Exception e) {
+			throw new GitCommandException(e);
+		}
 	}
 
 	@Override
-	public void reset(FileElement element) throws IOException {
+	public void reset(FileElement element) {
 		Runtime run = Runtime.getRuntime();
-		run.exec("git reset HEAD " + element.getSrc(), null, this.root);
+		try {
+			String[] command = new String[]{"git","reset","HEAD",element.getSrc()};
+			this.logging.info(PlugInUtil.join(command, " "));
+			Process p = run.exec(command, null, this.location);
+			if(p.waitFor() != 0){
+				throw new GitCommandException(this.error(p));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new GitCommandException(e);
+		}
 	}
 
 	@Override
 	public List<FileElement> status() {
 		List<FileElement> result = new ArrayList<FileElement>();
-		Runtime run = Runtime.getRuntime();// ∑µªÿ”Îµ±«∞ Java ”¶”√≥Ã–Úœ‡πÿµƒ‘À–– ±∂‘œÛ
+		Runtime run = Runtime.getRuntime();// ËøîÂõû‰∏éÂΩìÂâç Java Â∫îÁî®Á®ãÂ∫èÁõ∏ÂÖ≥ÁöÑËøêË°åÊó∂ÂØπË±°
 		try {
-			Process p = run.exec("git status -s", null, this.getRoot());// ∆Ù∂Ø¡Ì“ª∏ˆΩ¯≥Ã¿¥÷¥––√¸¡Ó
+			String command = "git status -s";
+			this.logging.info(command);
+			Process p = run.exec(command, null, this.location);// ÂêØÂä®Âè¶‰∏Ä‰∏™ËøõÁ®ãÊù•ÊâßË°åÂëΩ‰ª§
 			BufferedInputStream in = new BufferedInputStream(p.getInputStream());
 			BufferedReader inBr = new BufferedReader(new InputStreamReader(in));
 			String lineStr;
 			while ((lineStr = inBr.readLine()) != null) {
-				// ªÒµ√√¸¡Ó÷¥––∫Û‘⁄øÿ÷∆Ã®µƒ ‰≥ˆ–≈œ¢
+				// Ëé∑ÂæóÂëΩ‰ª§ÊâßË°åÂêéÂú®ÊéßÂà∂Âè∞ÁöÑËæìÂá∫‰ø°ÊÅØ
 				String line = lineStr.trim();
 				if (line.indexOf(" ") != -1) {
 					FileElement element = new FileElement();
 					element.setState(line.substring(0, line.indexOf(" ")).trim());
-					element.setSrc(line.substring(line.lastIndexOf(" ")).trim());
+					element.setSrc(line.substring(line.indexOf(" ")).trim());
 					result.add(element);
 				}
 			}
-			// ºÏ≤È√¸¡Ó «∑Ò÷¥–– ß∞‹°£
-			if (p.waitFor() != 0 && p.exitValue() == 1) {// p.exitValue()==0±Ì æ’˝≥£Ω· ¯£¨1£∫∑«’˝≥£Ω· ¯
-				throw new RuntimeException("√¸¡Ó÷¥–– ß∞‹!");
-			}
 			inBr.close();
 			in.close();
+			if(p.waitFor() != 0){
+				throw new GitCommandException(this.error(p));
+			}
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			throw new GitCommandException(e);
 		}
 		return result;
 	}
 
-	public File getRoot() {
-		return root;
+	private String error(Process p) throws Exception {
+		StringBuffer result = new StringBuffer();
+		BufferedInputStream in = new BufferedInputStream(p.getErrorStream());
+		BufferedReader inBr = new BufferedReader(new InputStreamReader(in));
+		String lineStr;
+		while ((lineStr = inBr.readLine()) != null) {
+			// Ëé∑ÂæóÂëΩ‰ª§ÊâßË°åÂêéÂú®ÊéßÂà∂Âè∞ÁöÑËæìÂá∫‰ø°ÊÅØ
+			String line = lineStr.trim();
+			if (line.indexOf(" ") != -1) {
+				result.append(line).append("\r\n");
+			}
+		}
+		inBr.close();
+		in.close();
+		return result.toString();
 	}
-
-	public void setRoot(File root) {
-		this.root = root;
+	
+	public static void main(String[] args){
+		try {
+			System.out.println(">" + new String(" ".getBytes("GBK"),"UNICODE") + "<");
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
-
 }

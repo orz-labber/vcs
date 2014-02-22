@@ -6,9 +6,19 @@ Bundle-Version: 1.0.0.qualifier
 Bundle-Activator: com.orz.tool.vcs.Activator
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
- org.eclipse.core.resources
+ org.eclipse.core.resources,
+ org.eclipse.ui.console;bundle-version="3.5.200"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Bundle-ActivationPolicy: lazy
 Bundle-ClassPath: .,
+ lib/aopalliance-1.0.jar,
+ lib/aspectjweaver-1.7.4.jar,
  lib/commons-compress-1.7.jar,
- lib/commons-io-2.4.jar
+ lib/commons-io-2.4.jar,
+ lib/commons-logging-1.1.1.jar,
+ lib/spring-aop-4.0.1.RELEASE.jar,
+ lib/spring-beans-4.0.1.RELEASE.jar,
+ lib/spring-context-4.0.1.RELEASE.jar,
+ lib/spring-core-4.0.1.RELEASE.jar,
+ lib/spring-expression-4.0.1.RELEASE.jar,
+ lib/xz-1.4.jar

@@ -1,13 +1,11 @@
 package com.orz.tool.vcs.ui;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.io.FileUtils;
 import org.eclipse.swt.widgets.Dialog;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.TableColumn;
@@ -28,7 +26,11 @@ import org.eclipse.wb.swt.SWTResourceManager;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+import com.orz.tool.vcs.PlugInConstant;
+import com.orz.tool.vcs.command.IGitCommand;
 import com.orz.tool.vcs.entity.FileElement;
 
 public class GitSvnDcommitFileListDialog extends Dialog {
@@ -41,6 +43,8 @@ public class GitSvnDcommitFileListDialog extends Dialog {
 	private IProject project;
 	private final List<FileElement> listData;
 
+	private ClassPathXmlApplicationContext paramContext;
+
 	/**
 	 * Create the dialog.
 	 * 
@@ -52,6 +56,15 @@ public class GitSvnDcommitFileListDialog extends Dialog {
 		setText("SWT Dialog");
 		this.project = project;
 		this.listData = datas;
+		paramContext = new ClassPathXmlApplicationContext();
+		paramContext.refresh();
+		parent.addListener(SWT.Close, new Listener() {
+			@Override
+			public void handleEvent(Event event) {
+				paramContext.close();
+			}
+
+		});
 	}
 
 	/**
@@ -91,9 +104,8 @@ public class GitSvnDcommitFileListDialog extends Dialog {
 		composite_1.setBounds(0, 0, 567, 33);
 
 		Button btnSelectAll = new Button(composite_1, SWT.CHECK);
-		btnSelectAll.setBounds(402, 10, 69, 18);
-		btnSelectAll.setText("select all");
-
+		btnSelectAll.setBounds(433, 10, 49, 18);
+		btnSelectAll.setText("全选");
 
 		final CheckboxTableViewer checkboxTableViewer = CheckboxTableViewer.newCheckList(composite, SWT.BORDER | SWT.CHECK | SWT.FULL_SELECTION | SWT.MULTI);
 		checkboxTableViewer.setContentProvider(new IStructuredContentProvider() {
@@ -114,9 +126,7 @@ public class GitSvnDcommitFileListDialog extends Dialog {
 		});
 
 		table = checkboxTableViewer.getTable();
-		table.setLocation(0, 33);
-		table.setSize(567, 245);
-		table.setBounds(0, 35, 645, 359);
+		table.setBounds(0, 35, 567, 243);
 		table.setLinesVisible(true);
 		table.setHeaderVisible(true);
 		TableViewerColumn stateColumn = new TableViewerColumn(checkboxTableViewer, SWT.NONE);
@@ -140,7 +150,6 @@ public class GitSvnDcommitFileListDialog extends Dialog {
 		tableColumn.setText("File List");
 
 		filePathColumn.setLabelProvider(new ColumnLabelProvider() {
-
 			@Override
 			public String getText(Object element) {
 				FileElement fileElement = (FileElement) element;
@@ -159,145 +168,47 @@ public class GitSvnDcommitFileListDialog extends Dialog {
 		packageZipMenu.setText("package zip");
 
 		checkboxTableViewer.setInput(this.listData);
-		
 
-		Button btnDcommit = new Button(composite_1, SWT.NONE);
+		final Button btnDcommit = new Button(composite_1, SWT.NONE);
 		btnDcommit.setBounds(477, 6, 80, 28);
-		btnDcommit.setText("dcommit");
+		btnDcommit.setText("提交SVN");
 		btnDcommit.addSelectionListener(new SelectionAdapter() {
+			private ClassPathXmlApplicationContext beanContext;
 			@Override
 			public void widgetSelected(SelectionEvent e) {
+				btnDcommit.setEnabled(false);
 				String comment = text.getText();
-				if (checkboxTableViewer.getCheckedElements().length > 0) {
-					try {
-						if(comment.length() == 0 ){
-							alert("请填写日志!");
-							text.forceFocus();
-							return;
-						}
-						addToIndex(checkboxTableViewer.getCheckedElements());
-					} catch (Exception e1) {
-						e1.printStackTrace();
-						alert("execute git commit error");
-					}
-				}else{
-					if(comment.length()>0){
-						alert("请在列表中选择记录!");
-						return;
-					}
+				Object[] elements = checkboxTableViewer.getCheckedElements();
+				if (elements.length > 0 && comment.length() == 0) {
+					alert("请填写日志!");
+					text.forceFocus();
+					return;
 				}
-				ArrayList<FileElement> add = new ArrayList<>();
-				ArrayList<FileElement> update = new ArrayList<>();
-				for (FileElement element : listData) {
-					if (!checkboxTableViewer.getChecked(element)) {// 没有被选中
-						if ("M".equalsIgnoreCase(element.getState())) {
-							update.add(element);
-						} else if ("A".equalsIgnoreCase(element.getState())) {
-							add.add(element);
-						}
-					}
+				if (elements.length == 0 && comment.length() > 0) {
+					alert("请在列表中选择记录!");
+					return;
 				}
-
-				try {
-					if (update.size() > 0) {
-						backupUpdateFiles(update.toArray(new FileElement[] {}));
-					}
-
-					if (add.size() > 0) {
-						removeFromIndex(add.toArray(new FileElement[] {}));
-					}
-					 executeGitDcommit(comment);
-					if (update.size() > 0) {
-						recoverBackupFiles(update.toArray(new FileElement[] {}));
-					}
-
-					if (add.size() > 0) {
-						addToIndex(add.toArray(new FileElement[] {}));
-					}
-					
-					//刷新列表 alert dcommit成功
-				} catch (Exception e1) {
-					e1.printStackTrace();
-					alert("git svn dcommit error!");
-				}
-
+				DefaultListableBeanFactory factory = (DefaultListableBeanFactory) paramContext.getAutowireCapableBeanFactory();
+				factory.destroySingletons();
+				factory.registerSingleton("location", project.getLocation().toFile());
+				factory.registerSingleton("checkedDatas", elements == null || elements.length==0?new Object[]{}:elements);
+				factory.registerSingleton("listData", listData);
+				factory.registerSingleton("comment", comment);
+				beanContext = new ClassPathXmlApplicationContext(PlugInConstant.applicationContextXML, paramContext);
+				IGitCommand command = (IGitCommand) beanContext.getBean("command");
+				command.dcommit();
+				beanContext.close();
+				btnDcommit.setEnabled(true);
 			}
 
 		});
 
 	}
 
-	// 执行commit
-	private void addToIndex(Object[] elements) throws IOException, InterruptedException {
-		for(Object element: elements){
-			FileElement _e = (FileElement)element;
-			this.addToIndex(_e);
-		}
-	}
-	
-	private void addToIndex(FileElement element) throws IOException, InterruptedException{
-		Runtime run = Runtime.getRuntime();
-//		if(!"M".equalsIgnoreCase(element.getState()) && !"A".equalsIgnoreCase(element.getState()) && !"D".equalsIgnoreCase(element.getState())){
-			Process process = run.exec("git add " + element.getSrc(), null, project.getLocation().toFile());
-			process.waitFor();
-//		}
+	private void alert(String message) {
+		MessageBox messageBox = new MessageBox(this.getParent(), SWT.YES | SWT.ERROR);
+		messageBox.setMessage(message);
+		messageBox.open();
 	}
 
-	// 备份没有选中的更新状态的文件
-	private void backupUpdateFiles(FileElement[] elements) throws IOException, InterruptedException {
-		Runtime run = Runtime.getRuntime();// 返回与当前 Java 应用程序相关的运行时对象
-		for (FileElement element : elements) {
-			File file = new File(project.getLocation().toFile(),element.getSrc());
-			String fileName = file.getName();
-			File renameFile = new File(file.getParent(), "__"+ fileName + "__");
-		    FileUtils.copyFile(file, renameFile);
-			if (renameFile.exists() && renameFile.isFile()) {
-				Process process = run.exec("git checkout " + element.getSrc(), null, project.getLocation().toFile());
-				process.waitFor();
-			}
-		}
-	}
-
-	// dcommit后恢复backup文件
-	private void recoverBackupFiles(FileElement[] elements) throws IOException {
-		for (FileElement element : elements) {
-			File file = new File(project.getLocation().toFile(),element.getSrc());
-			File parent = file.getParentFile();
-			File tmp = new File(parent, "__" + file.getName() +"__");
-			if (tmp.exists() && tmp.isFile()) {
-				FileUtils.copyFile(tmp, file);
-				tmp.delete();
-			}
-		}
-	}
-
-	private void removeFromIndex(FileElement[] elements) throws IOException, InterruptedException {
-		Runtime run = Runtime.getRuntime();
-		for (FileElement element : elements) {
-			Process process = run.exec("git reset HEAD " + element.getSrc(), null, project.getLocation().toFile());
-			process.waitFor();
-		}
-	}
-
-	private void addToIndex(FileElement[] elements) throws IOException, InterruptedException {
-		for (FileElement element : elements) {
-			this.addToIndex(element);
-		}
-	}
-
-	private void executeGitDcommit(String comment) throws IOException, InterruptedException {
-		Runtime run = Runtime.getRuntime();
-		if(comment.length() > 0){
-			Process process = run.exec("git commit -a -m \""+comment+"\"", null, project.getLocation().toFile());
-			process.waitFor();
-		}
-		Process process =  run.exec("git svn dcommit", null, project.getLocation().toFile());
-		process.waitFor();
-	}
-	
-	private void alert(String message){
-		 MessageBox messageBox = new MessageBox(this.getParent(), SWT. YES | SWT.ERROR );
-		 messageBox.setMessage(message);
-		 messageBox.open();
-	}
 }
